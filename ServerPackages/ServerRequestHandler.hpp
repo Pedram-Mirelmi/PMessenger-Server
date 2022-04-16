@@ -1,9 +1,9 @@
 #pragma once
 #include <fmt/format.h>
-#include "../../Commons/KeyWords.hpp"
+#include "../KeyWords.hpp"
 #include "DatabaseConnector.hpp"
 #include <unordered_set>
-#include "../../Commons/stringTools.hpp"
+#include "../stringTools.hpp"
 #include <string>
 
 typedef Json::Value JsonObj;

@@ -19,3 +19,4 @@ target_link_libraries(PMessenger_Server pqxx)
 
 find_package(pq)
 target_link_libraries(PMessenger_Server pq)
+

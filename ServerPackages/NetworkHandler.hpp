@@ -9,7 +9,7 @@
 #include <arpa/inet.h>
 #include <jsoncpp/json/json.h>
 #include <cmath>
-#include "../../Commons/KeyWords.hpp"
+#include "../KeyWords.hpp"
 
 
 class NetworkHandler 

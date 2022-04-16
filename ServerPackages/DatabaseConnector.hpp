@@ -4,8 +4,8 @@
 
 #include <jsoncpp/json/json.h>
 #include <mutex>
-#include "../../Commons/stringTools.hpp"
-#include "../../Commons/KeyWords.hpp"
+#include "../stringTools.hpp"
+#include "../KeyWords.hpp"
 
 #ifndef DB_NUMERIC_TYPE 
 #define DB_NUMERIC_TYPE 20
