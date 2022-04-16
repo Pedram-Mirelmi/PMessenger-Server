@@ -35,3 +35,6 @@
 *.idea
 *.vscode
 *test*
+
+
+cmake-build-debug/*
