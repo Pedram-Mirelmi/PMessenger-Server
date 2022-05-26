@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <string>
 #include <mutex>
@@ -23,7 +24,7 @@ private:
     std::mutex receive_lock;
 
 public:
-    NetworkHandler(const int& socket)
+    explicit NetworkHandler(const int& socket)
         :sock(socket)
     {}
 
@@ -61,13 +62,13 @@ public:
                                       + std::to_string(message_string.length())).data(),
                          8, MSG_NOSIGNAL);
         if (send(this->sock, message_string.data(), message_string.size(), MSG_NOSIGNAL) == -1)
-            throw std::runtime_error("connection closed by client");
+            throw std::runtime_error("connection crashed by client");
     }
 
 
 
 private:
-    int getHeader()
+    int getHeader() const
     {   
         char* req_len_buff = new char[8];
         recv(this->sock, req_len_buff, 8, 0);

@@ -22,21 +22,21 @@ typedef std::unordered_map<id_T, std::shared_ptr<ClientConnection>> conn_set;
 class Server
 {
 private:
-	int listening_socket;
+	int listening_socket{};
 	int listening_port;
-	sockaddr_in server_hint;
+	sockaddr_in server_hint{};
 	conn_set connections;
 	
 public:
-	Server(const int& port_num)
+	explicit Server(const int& port_num)
 		: listening_port(port_num)
 	{ 
 		createListeningSocket();
-		bindlListeningSocket();
+        bindListeningSocket();
 		runServer();
     }
 
-	void runServer()
+    [[noreturn]] void runServer()
 	{
 		listen(listening_socket, SOMAXCONN);
 		std::cout << "listening ..." << endl;
@@ -50,7 +50,7 @@ public:
 		socklen_t client_size = sizeof(client_hint);
 		int client_socket = accept(listening_socket, (sockaddr*)&client_hint, &client_size);
 		std::cout << "accepted!" << std::endl;
-		this->printClientInfo(client_hint);
+		Server::printClientInfo(client_hint);
 		
 		std::thread new_thread(&Server::handleNewConnection, this, client_socket, client_hint);
 		new_thread.detach();
@@ -68,7 +68,7 @@ private:
 		return true;
 	}
 
-	inline bool bindlListeningSocket()
+	inline bool bindListeningSocket()
 	{
 		server_hint.sin_family = AF_INET;
 		server_hint.sin_port = htons(this->listening_port);
@@ -94,7 +94,7 @@ private:
 		}
 	}
 
-    inline void printClientInfo(const sockaddr_in& client)
+    static inline void printClientInfo(const sockaddr_in& client)
     {
         char host[NI_MAXHOST];      
         char service[NI_MAXSERV];  

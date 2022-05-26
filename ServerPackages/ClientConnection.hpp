@@ -16,18 +16,18 @@ class ClientConnection
 {
 typedef std::unordered_map<id_T, std::shared_ptr<ClientConnection>> conn_set;
 private:
-    NetworkHandler networkHandler;
+    NetworkHandler network_handler;
     id_T user_id = INVALID_ID;
     conn_set& other_connections;
     JsonObj current_request;
-    JsonObj current_response;
+    std::vector<JsonObj> current_responses;
     std::chrono::steady_clock::time_point last_req_time;
     ServerRequestHandler rh;
 public:
     static std::chrono::steady_clock::duration maxSuspension;
    
     ClientConnection(const int& socket, conn_set& others)
-        : networkHandler(socket), other_connections(others), rh(user_id)
+        : network_handler(socket), other_connections(others), rh(user_id, network_handler)
     {};
 
     id_T handleLoginOrRegister()
@@ -37,24 +37,25 @@ public:
         {   
             while (true)
             {
-                current_response.clear();
+                current_responses.clear();
                 current_request.clear();
-                this->networkHandler.receiveMessage(current_request);
+                this->network_handler.receiveMessage(current_request);
                 if (current_request[NET_MESSAGE_TYPE] == CLOSE_CONNECTION)
                 {
                     std::cout << "connection closed properly by client" << std::endl;
                     return INVALID_ID;
                 }
-                this->rh.handle(current_request, current_response);
+                current_responses = this->rh.handle(current_request);
+//                std::cout << current_responses.size();
                 if ((current_request[NET_MESSAGE_TYPE].asString() == REGISTER
-                     || current_request[NET_MESSAGE_TYPE].asString() == LOGIN) 
-                     && current_response[SUCCESSFUL].asBool())
+                     || current_request[NET_MESSAGE_TYPE].asString() == LOGIN)
+                    && current_responses[0][SUCCESSFUL].asBool())
                 {
-                    this->user_id = std::stoi(current_response[USER_INFO][USER_ID].asString());
-                    this->networkHandler.sendMessage(current_response);
+                    this->user_id = std::stoi(current_responses[0][USER_INFO][USER_ID].asString());
+                    this->network_handler.sendMessage(current_responses[0]);
                     break;
                 }
-                this->networkHandler.sendMessage(current_response);
+                this->network_handler.sendMessage(current_responses[0]);
             }
             // std::thread(&ClientConnection::controlOnlineTime, this).detach();
             return this->user_id;
@@ -73,18 +74,20 @@ public:
         {
             while (true)
             {
-                current_response.clear();
+                current_responses.clear();
                 current_request.clear();
-                this->networkHandler.receiveMessage(current_request);
+                this->network_handler.receiveMessage(current_request);
                 if (current_request[NET_MESSAGE_TYPE].asString() == CLOSE_CONNECTION)
                 {
                     std::cout << "connection closed properly by client" << std::endl;
                     return;
                 }
                 // std::thread(&ClientConnection::controlOnlineTime, this).detach();
-                this->rh.handle(current_request, current_response);
-                this->networkHandler.sendMessage(current_response);
-                // std::thread(&ClientConnection::checkForSpecialOperations, this, current_request, current_response).detach();
+                current_responses = this->rh.handle(current_request);
+                for(const auto& response: current_responses) {
+                    this->network_handler.sendMessage(response);
+                }
+                // std::thread(&ClientConnection::checkForSpecialOperations, this, current_request, current_responses).detach();
 
             }
         }
@@ -100,22 +103,22 @@ private:
         if (std::chrono::steady_clock::now() - this->last_req_time > ClientConnection::maxSuspension)
             this->rh.setMeOnline(this->user_id);
         this->last_req_time = std::chrono::steady_clock::now();
-        std::this_thread::sleep_for(this->maxSuspension);
+        std::this_thread::sleep_for(ClientConnection::maxSuspension);
         if (std::chrono::steady_clock::now() - this->last_req_time > ClientConnection::maxSuspension)
             this->rh.setMeOffline(this->user_id);
     }
 
-    void checkForSpecialOperations(msg_t request, msg_t response)
+    void checkForSpecialOperations(const msg_t& request, const msg_t& response)
     {
         using namespace KeyWords;
         if (request[NET_MESSAGE_TYPE] == NEW_TEXT_MESSAGE
-            && response[SUCCESSFUL].asBool() == true)
+            && response[SUCCESSFUL].asBool())
         {
             this->announceNewMessageToOthers(response[MESSAGE_INFO]);
         }
     }
 
-    void announceNewMessageToOthers(msg_t& message_info)
+    void announceNewMessageToOthers(const msg_t& message_info)
     {
         using namespace KeyWords;
         std::unordered_set<std::string> audiences;
@@ -126,20 +129,18 @@ private:
             threads.emplace_back([&]() 
                 {
                     auto audience = this->other_connections[std::stoi(id_str)];
-                    if (audience != NULL)
+                    if (audience != nullptr)
                         audience->announceNewMessageToMe(current_request);
                 }
             );
         for (auto& thread : threads)
             thread.join();
-
-        return;
-    }
+   }
 
 public:
-    void announceNewMessageToMe(msg_t message_info)
+    void announceNewMessageToMe(const msg_t& message_info)
     {
-        this->networkHandler.sendMessage(message_info);
+        this->network_handler.sendMessage(message_info);
     }
 };
 
