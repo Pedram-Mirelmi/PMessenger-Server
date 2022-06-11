@@ -35,6 +35,6 @@
 *.idea
 *.vscode
 *test*
-
+todolist.txt
 
 cmake-build-debug/*
