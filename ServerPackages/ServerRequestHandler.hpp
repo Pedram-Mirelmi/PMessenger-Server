@@ -165,6 +165,8 @@ public:
         using namespace KeyWords;
         std::vector<JsonObj> responses(1);
         auto& response = responses[0];
+        response[NET_MESSAGE_TYPE] = DATA;
+        response[DATA_TYPE] = MESSAGE;
         this->m_db.getPrivateEnvMessages(response, request[ENV_ID].asUInt64(), request[LAST_MESSAGE_CLIENT_HAS].asUInt64());
         return responses;
     };
@@ -174,12 +176,11 @@ public:
         using namespace KeyWords;
         std::vector<JsonObj> responses(1);
         auto& response = responses[0];
+        response[NET_MESSAGE_TYPE] = USERNAME_SEARCH_RESULT;
         auto Qry = fmt::format("SELECT user_id, username, name, created_at"
                                " FROM users WHERE username LIKE '%{}%';",
                                 request[USERNAME_TO_SEARCH].asCString());
-        JsonArr search_result;
-        this->m_db.SELECT(Qry, search_result);
-        response[SEARCH_RESULT] = search_result;
+        this->m_db.SELECT(Qry, response[SEARCH_RESULT]);
         response[SUCCESSFUL] = true;
         return responses;
     }
@@ -189,6 +190,7 @@ public:
         using namespace KeyWords;
         std::vector<JsonObj> responses(1);
         auto& response = responses[0];
+        response[NET_MESSAGE_TYPE] = PRIVATE_CHAT_CREATION_CONFIRMATION;
         auto created_env_id = this->m_db.insertPrivateChatBetween(this->m_user_id,
                                                                   request[USER_ID].asUInt64());
         if (created_env_id)
@@ -196,8 +198,12 @@ public:
             auto get_info_query = fmt::format("SELECT * FROM private_chats_view "
                                               "WHERE env_id = {}", created_env_id);
             this->m_db.singleSELECT(get_info_query, response[ENV_INFO]);
-            response[ENV_INFO][ENV_TYPE] = PRIVATE_CHAT;
-            response[ENV_INFO][INVALID_ENV_ID] = std::to_string(request[INVALID_ENV_ID].asUInt64());
+            response[INVALID_ENV_ID] = request[INVALID_ENV_ID].asUInt64();
+            response[ENV_INFO][OTHER_PERSON_ID] = response[ENV_INFO][FIRST_PERSON].asUInt() == this->m_user_id ?
+                                                      response[ENV_INFO][SECOND_PERSON].asUInt() :
+                                                      response[ENV_INFO][FIRST_PERSON].asUInt();
+            response[ENV_INFO].removeMember(FIRST_PERSON);
+            response[ENV_INFO].removeMember(SECOND_PERSON);
             response[SUCCESSFUL] = true;
             return responses;
         }
@@ -210,6 +216,8 @@ public:
         using namespace KeyWords;
         std::vector<JsonObj> responses(1);
         auto& response = responses[0];
+        response[NET_MESSAGE_TYPE] = TEXT_MESSAGE_SENT_CONFIRMATION;
+        response[INVALID_MESSAGE_ID] = request[INVALID_MESSAGE_ID];
         auto created_message_id = this->m_db.insertNewTextMessage(this->m_user_id,
                                                                   request[ENV_ID].asUInt64(),
                                                                   request[MESSAGE_TEXT].asCString());
