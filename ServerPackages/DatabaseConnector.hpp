@@ -157,10 +157,10 @@ public:
         {
             auto created_message_id = this->getLastInsertId("messages", "message_id");
             auto create_text_message_query = fmt::format("INSERT INTO text_messages(message_id, message_text) "
-                                                         "VALUES({},                 {});",
+                                                         "VALUES({},                 '{}');",
                                                                 created_message_id, toRaw(message_text));
 
-            return this->execTransactionQuery(create_message_query) ? created_message_id : 0;
+            return this->execTransactionQuery(create_text_message_query) ? created_message_id : 0;
         }
         return 0;
     }   
@@ -210,7 +210,7 @@ public:
         using namespace KeyWords;
         // text messages
         auto query = min_message_index == 0 ? fmt::format("SELECT * FROM text_messages_view WHERE env_id={};", env_id) :
-                                              fmt::format("SELECT * FROM text_messages_view WHERE env_id={} AND messages_id>{};", env_id, min_message_index);
+                                              fmt::format("SELECT * FROM text_messages_view WHERE env_id={} AND message_id>{};", env_id, min_message_index);
         this->SELECT(query, messages_container[TEXT_MESSAGES], true);
         // TODO other types of messages ...
     }

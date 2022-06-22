@@ -74,9 +74,11 @@ public:
 
     }
     
-    void getParticipants(const int64_t& env_id_str, set& participants)
+    void getParticipants(const int64_t& env_id_str, JsonArr& participants)
     {
-
+//        std::unordered_set<id_T> participants;
+        auto query = fmt::format("SELECT user_id FROM chat_attends WHERE env_id={}", env_id_str);
+        this->m_db.SELECT(query, participants, false);
     }
 
     std::vector<JsonObj> handleRegister(const JsonObj& request)

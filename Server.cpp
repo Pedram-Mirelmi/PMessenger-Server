@@ -46,7 +46,7 @@ public:
 	
 	inline void acceptNewConnection()
 	{
-		sockaddr_in client_hint;
+		sockaddr_in client_hint{};
 		socklen_t client_size = sizeof(client_hint);
 		int client_socket = accept(listening_socket, (sockaddr*)&client_hint, &client_size);
 		std::cout << "accepted!" << std::endl;

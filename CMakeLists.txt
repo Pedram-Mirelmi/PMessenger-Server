@@ -3,7 +3,7 @@ project(PMessenger_Server)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(PMessenger_Server Server.cpp ServerPackages/ClientConnection.hpp ServerPackages/DatabaseConnector.hpp ServerPackages/NetworkHandler.hpp KeyWords.hpp)
+add_executable(PMessenger_Server Server.cpp ServerPackages/ClientConnection.hpp ServerPackages/DatabaseConnector.hpp ServerPackages/NetworkHandler.hpp KeyWords.hpp SelfDestructorFuture.cpp SelfDestructorFuture.h)
 
 find_package(fmt)
 target_link_libraries(PMessenger_Server fmt)
@@ -19,4 +19,5 @@ target_link_libraries(PMessenger_Server pqxx)
 
 find_package(pq)
 target_link_libraries(PMessenger_Server pq)
+
 

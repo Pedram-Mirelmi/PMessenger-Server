@@ -22,12 +22,13 @@ private:
     JsonObj current_request;
     std::vector<JsonObj> current_responses;
     std::chrono::steady_clock::time_point last_req_time;
-    ServerRequestHandler rh;
+    ServerRequestHandler m_request_handler;
+//    std::vector
 public:
     static std::chrono::steady_clock::duration maxSuspension;
    
     ClientConnection(const int& socket, conn_set& others)
-        : network_handler(socket), other_connections(others), rh(user_id, network_handler)
+        : network_handler(socket), other_connections(others), m_request_handler(user_id, network_handler)
     {};
 
     id_T handleLoginOrRegister()
@@ -45,7 +46,7 @@ public:
                     std::cout << "connection closed properly by client" << std::endl;
                     return INVALID_ID;
                 }
-                current_responses = this->rh.handle(current_request);
+                current_responses = this->m_request_handler.handle(current_request);
 //                std::cout << current_responses.size();
                 if ((current_request[NET_MESSAGE_TYPE].asString() == REGISTER
                      || current_request[NET_MESSAGE_TYPE].asString() == LOGIN)
@@ -83,7 +84,8 @@ public:
                     return;
                 }
                 // std::thread(&ClientConnection::controlOnlineTime, this).detach();
-                current_responses = this->rh.handle(current_request);
+                current_responses = this->m_request_handler.handle(current_request);
+                this->checkForSpecialOperations();
                 for(const auto& response: current_responses) {
                     this->network_handler.sendMessage(response);
                 }
@@ -101,36 +103,36 @@ private:
     void controlOnlineTime()
     {
         if (std::chrono::steady_clock::now() - this->last_req_time > ClientConnection::maxSuspension)
-            this->rh.setMeOnline(this->user_id);
+            this->m_request_handler.setMeOnline(this->user_id);
         this->last_req_time = std::chrono::steady_clock::now();
         std::this_thread::sleep_for(ClientConnection::maxSuspension);
         if (std::chrono::steady_clock::now() - this->last_req_time > ClientConnection::maxSuspension)
-            this->rh.setMeOffline(this->user_id);
+            this->m_request_handler.setMeOffline(this->user_id);
     }
 
-    void checkForSpecialOperations(const msg_t& request, const msg_t& response)
+    void checkForSpecialOperations()
     {
         using namespace KeyWords;
-        if (request[NET_MESSAGE_TYPE] == NEW_TEXT_MESSAGE
-            && response[SUCCESSFUL].asBool())
+        if (current_request[NET_MESSAGE_TYPE] == NEW_TEXT_MESSAGE
+            && current_responses[0][SUCCESSFUL].asBool())
         {
-            this->announceNewMessageToOthers(response[MESSAGE_INFO]);
+            this->announceNewMessageToOthers(current_responses[0][MESSAGE_INFO]);
         }
     }
 
     void announceNewMessageToOthers(const msg_t& message_info)
     {
         using namespace KeyWords;
-        std::unordered_set<std::string> audiences;
-        this->rh.getParticipants(message_info[ENV_ID].asInt64(), audiences);
+        JsonArr participants;
+        this->m_request_handler.getParticipants(message_info[ENV_ID].asInt64(), participants);
         std::vector<std::thread> threads;
-        threads.reserve(audiences.size());
-        for (const std::string& id_str : audiences)
-            threads.emplace_back([&]() 
+        threads.reserve(participants.size());
+        for (const auto& single_element_list : participants)
+            threads.emplace_back([=]()
                 {
-                    auto audience = this->other_connections[std::stoi(id_str)];
+                    auto audience = this->other_connections[single_element_list[0].asUInt64()];
                     if (audience != nullptr)
-                        audience->announceNewMessageToMe(current_request);
+                        audience->announceNewMessageToMe(message_info);
                 }
             );
         for (auto& thread : threads)
@@ -140,7 +142,13 @@ private:
 public:
     void announceNewMessageToMe(const msg_t& message_info)
     {
-        this->network_handler.sendMessage(message_info);
+        using namespace KeyWords;
+        JsonObj net_msg;
+        net_msg[NET_MESSAGE_TYPE] = DATA;
+        net_msg[DATA_TYPE] = MESSAGE;
+        net_msg[TEXT_MESSAGES].append(message_info);
+        std::cout << net_msg << std::endl;
+        this->network_handler.sendMessage(net_msg);
     }
 };
 
