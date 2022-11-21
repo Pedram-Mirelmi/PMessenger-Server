@@ -8,9 +8,8 @@ DROP TABLE IF EXISTS chat_envs;
 DROP TABLE IF EXISTS contacts;
 DROP TABLE IF EXISTS users;
 
-
 DROP TABLE IF EXISTS users;
-CREATE TABLE users 
+CREATE TABLE users
 (
     user_id             BIGSERIAL NOT NULL PRIMARY KEY,
     username            VARCHAR(200) UNIQUE NOT NULL,
@@ -33,7 +32,7 @@ DROP TABLE IF EXISTS chat_envs;
 CREATE TABLE chat_envs
 (
     env_id          BIGSERIAL NOT NULL PRIMARY KEY ,
-    created_at      DATE NOT NULL DEFAULT NOW()           
+    created_at      DATE NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE private_chats
@@ -69,9 +68,9 @@ CREATE TABLE messages
 
 CREATE TABLE text_messages
 (
-    messages_id     BIGINT NOT NULL PRIMARY KEY ,
+    message_id     BIGINT NOT NULL PRIMARY KEY ,
     message_text    TEXT NOT NULL ,
-    FOREIGN KEY (messages_id) REFERENCES messages(message_id)
+    FOREIGN KEY (message_id) REFERENCES messages(message_id)
 );
 
 CREATE VIEW text_messages_view AS
@@ -79,10 +78,11 @@ CREATE VIEW text_messages_view AS
         m.message_id,
         m.owner_id,
         m.env_id,
-        m.created_at
+        m.created_at,
+        tm.message_text
     FROM messages m
     LEFT JOIN text_messages tm
-        ON m.message_id = tm.messages_id;
+        ON m.message_id = tm.message_id;
 
 CREATE VIEW private_chats_view AS
     SELECT
